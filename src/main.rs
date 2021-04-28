@@ -147,9 +147,9 @@ fn setup(
 fn paddle_movement_system(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&PlayerPaddle, &mut Transform)>,
+    mut query: Query<&mut Transform, With<PlayerPaddle>>,
 ) {
-    if let Ok((paddle, mut transform)) = query.single_mut() {
+    if let Ok(mut transform) = query.single_mut() {
         let mut direction = 0.0;
         if keyboard_input.pressed(KeyCode::Up) {
             direction += 1.0;
@@ -161,7 +161,7 @@ fn paddle_movement_system(
 
         let translation = &mut transform.translation;
         // move the paddle horizontally
-        translation.y += time.delta_seconds() * direction * 400.0;
+        translation.y += time.delta_seconds() * direction * 200.0;
         // bound the paddle within the walls
         translation.y = translation.y.min(300.0).max(-300.0);
     }
@@ -171,13 +171,13 @@ fn ai_paddle_movement_system(
     time: Res<Time>,
     mut queries: QuerySet<(
         Query<(&Ball, &Transform)>,
-        Query<(&AiPaddle, &mut Transform)>,
+        Query<&mut Transform, With<AiPaddle>>,
     )>,
 ) {
     let ball_translation = queries.q0().single().unwrap().1.translation;
-    if let Ok((paddle, mut transform)) = queries.q1_mut().single_mut() {
+    if let Ok(mut transform) = queries.q1_mut().single_mut() {
         let mut direction = 0.0;
-        if ball_translation.x > 300.0 {
+        if ball_translation.x > 250.0 {
             if ball_translation.y > transform.translation.y {
                 direction += 1.0;
             }
@@ -224,16 +224,15 @@ fn ball_movement_system(
 }
 
 fn ball_collision_system(
-    mut commands: Commands,
     mut ball_query: Query<(&mut Ball, &Transform, &Sprite)>,
-    collider_query: Query<(Entity, &Collider, &Transform, &Sprite)>,
+    collider_query: Query<(&Transform, &Sprite), With<Collider>>,
 ) {
     if let Ok((mut ball, ball_transform, sprite)) = ball_query.single_mut() {
         let ball_size = sprite.size;
         let velocity = &mut ball.velocity;
 
         // check collision with walls
-        for (collider_entity, collider, transform, sprite) in collider_query.iter() {
+        for (transform, sprite) in collider_query.iter() {
             let collision = collide(
                 ball_transform.translation,
                 ball_size,
